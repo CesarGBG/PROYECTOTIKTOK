@@ -24,17 +24,17 @@ if archivos:
 
         df_total['texto_limpio'] = df_total['text'].apply(limpiar_texto)
 
-        # DETECCIÓN DE OFENSAS
+        # DETECCIÓN DE OFENSAS (por raíz)
         palabras_ofensivas = [
-            "cerru", "feo", "bello", "guapo", "guapa", "bonita", "feos", "verde", "arboles", "fallout",
-            "wall-e", "marte", "marrón", "indígenas", "negros", "marrones", "negro", "polvoru",
-            "ay mi gatito miau miau", "cerruano", "portal esperanza", "en perú debo ser un 10",
-            "en peru seria un 10", "perukistan", "perusalen", "mierdu", "piedru", "ser guapo",
-            "pueblo marrón", "árbol", "árboles", "ilegal plantar", "de que parte de europa",
-            "se robó toda la belleza", "comepaloma"
+            "cerru", "feo", "bello", "guapo", "guapa", "bonita", "verde", "arbol", "fallout",
+            "wall-e", "marte", "marrón", "indígena", "negro", "polvoru",
+            "gatito", "cerruano", "portal esperanza", "perú debo ser un", "peru seria un",
+            "perukistan", "perusalen", "mierdu", "piedru", "pueblo marrón",
+            "ilegal plantar", "parte de europa", "robó toda la belleza", "comepaloma"
         ]
+
         def es_ofensivo(texto):
-            return any(p.lower() in texto for p in palabras_ofensivas)
+            return any(re.search(rf"\b{re.escape(p)}\w*\b", texto) for p in palabras_ofensivas)
 
         df_total['ofensivo'] = df_total['texto_limpio'].apply(es_ofensivo)
 
@@ -66,14 +66,14 @@ if archivos:
         nube = WordCloud(width=800, height=300, background_color='white', stopwords=palabras_excluidas).generate(todo_el_texto)
         st.image(nube.to_array())
 
-        # FRECUENCIA DE PALABRAS OFENSIVAS
+        # FRECUENCIA DE PALABRAS OFENSIVAS (por coincidencia parcial)
         st.subheader("💬 Palabras ofensivas más frecuentes")
-        ofensivos = df_total[df_total["ofensivo"] == True]["texto_limpio"]
-        texto_ofensivo = ' '.join(ofensivos)
+        texto_ofensivo = ' '.join(df_total[df_total["ofensivo"] == True]["texto_limpio"])
 
         frecuencia = {}
         for palabra in palabras_ofensivas:
-            frecuencia[palabra] = texto_ofensivo.count(palabra.lower())
+            coincidencias = re.findall(rf"\b{re.escape(palabra)}\w*\b", texto_ofensivo)
+            frecuencia[palabra] = len(coincidencias)
 
         df_frecuencia = pd.DataFrame(list(frecuencia.items()), columns=["Palabra Ofensiva", "Frecuencia"])
         df_frecuencia = df_frecuencia[df_frecuencia["Frecuencia"] > 0].sort_values(by="Frecuencia", ascending=False)
@@ -87,6 +87,7 @@ if archivos:
         st.subheader("📊 Proporción de comentarios ofensivos")
         conteo_ofensivo = df_total['ofensivo'].value_counts()
         st.bar_chart(conteo_ofensivo.rename({True: "Ofensivo", False: "No Ofensivo"}))
+
 
 
 
